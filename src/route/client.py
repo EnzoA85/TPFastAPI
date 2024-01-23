@@ -12,8 +12,8 @@ def get_lesClients():
 def get_unClient(client_uuid: uuid.UUID):
     return "TOTO"
 
-@app.put("/editClient")
-def edit_client():
+@app.put("/editClient/{client_uuid}")
+def edit_client(client_uuid: uuid.UUID):
     return "TOTO"
 
 @app.post("/addClient")

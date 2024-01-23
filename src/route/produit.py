@@ -16,6 +16,6 @@ def get_unProduit(produit_uuid: uuid.UUID):
 def add_produit():
     return "TOTO"
 
-@app.put("/editProduit")
-def edit_produit():
+@app.put("/editProduit/{produit_uuid}")
+def edit_produit(produit_uuid: uuid.UUID):
     return "TOTO"

@@ -9,5 +9,5 @@ def get_lesFactures():
     return "TOTO"
 
 @app.get("/facture/{facture_uuid}")
-def get_uneFactures(facture_uuid: uuid.UUID):
+def get_uneFacture(facture_uuid: uuid.UUID):
     return "TOTO"

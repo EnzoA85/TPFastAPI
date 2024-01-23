@@ -17,3 +17,4 @@ app.include_router(client.app)
 app.include_router(user.app)
 app.include_router(chambre.app)
 app.include_router(produit.app)
+

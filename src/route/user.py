@@ -8,6 +8,6 @@ app = APIRouter()
 def add_User():
     return "TOTO"
 
-@app.put("/editUser")
-def edit_User():
+@app.put("/editUser/{user_uuid}")
+def edit_User(user_uuid: uuid.UUID):
     return "TOTO"
