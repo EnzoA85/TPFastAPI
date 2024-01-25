@@ -3,8 +3,9 @@ import uuid as uuid
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+from .storage import OrderType, InMemoryStorage, GetAllFilter
 
-app = APIRouter(prefix="/chambre")
+router = APIRouter(prefix="/chambre")
 
 class TypeRoom(enum.StrEnum):
     SIMPLE = enum.auto()
@@ -18,50 +19,33 @@ class Chambre(BaseModel):
 class ChambreFull(Chambre):
     id: uuid.UUID
 
-
-class ChambreStorage:
-
-    def __init__(self):
-        self._datas: dict[uuid.UUID, Chambre] = {}
-
-    def get(self, uuid:uuid.UUID) -> Chambre:
-        return self._datas.get(uuid)
-
-    def create(self, chambre:Chambre) -> uuid.UUID:
-        new_uuid = uuid.uuid4()
-        self._datas[new_uuid] = chambre
-        return new_uuid
-
-    def get_all(self) -> list[Chambre]:
-        return list(self._datas.values())
-
-    def update(self, uuid: uuid.UUID, chambre: Chambre):
-        self._datas[uuid] = chambre
-
-_storage = ChambreStorage()
-
-@app.get("/{uuid}")
-def get_chambre(uuid:uuid.UUID) -> Chambre:
-    ch = _storage.get(uuid)
+@router.get("/{uuid}")
+def get_uneChambre(uuid:uuid.UUID) -> Chambre:
+    ch = InMemoryStorage.for_type(Chambre).get(uuid)
     if not ch:
         raise ValueError()
     return ch
 
-@app.get("/")
-def get_AllChambre() -> list[Chambre]:
-    chs = _storage.get_all()
+@router.get("/")
+def get_allChambre(order:str=None, order_type:OrderType = OrderType.DESC, limit:int=None, offset:int=None) -> list[Chambre]:
+    filter = GetAllFilter()
+    filter.order = order
+    filter.order_type = order_type
+    filter.limit = limit
+    filter.offset = offset
+    chs = InMemoryStorage.for_type(Chambre).get_all(filter)
     return chs
 
-@app.patch("/{uuid}")
-def edit_chambre(uuid: uuid.UUID, item: Chambre) -> bool:
-    ch = _storage.get(uuid)
+@router.patch("/{uid}")
+def edit_chambre(uid: uuid.UUID, item: Chambre) -> bool:
+    ch = InMemoryStorage.for_type(Chambre).get(uid)
     if not ch:
         return False
     update_data = item.dict(exclude_unset=True)
-    _storage.update(uuid, ch.copy(update=update_data))
+    InMemoryStorage.for_type(Chambre).update(uid, ch.copy(update=update_data))
     return True
 
-@app.post("/")
+@router.post("/")
 def add_chambre(chambre: Chambre) -> uuid.UUID:
-    new_uuid = _storage.create(chambre)
+    new_uuid = InMemoryStorage.for_type(Chambre).create(chambre)
     return new_uuid

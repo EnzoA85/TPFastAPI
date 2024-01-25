@@ -2,59 +2,43 @@ import uuid as uuid
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+from .storage import OrderType, InMemoryStorage, GetAllFilter
 
-
-app = APIRouter(prefix="/client")
+router = APIRouter(prefix="/client")
 
 class Client(BaseModel):
     nom: str
     prenom: str
     mail: str
     telephone: str
-    
-class ClientStorage:
 
-    def __init__(self):
-        self._datas: dict[uuid.UUID, Client] = {}
-
-    def get(self, uuid:uuid.UUID) -> Client:
-        return self._datas.get(uuid)
-
-    def create(self, client:Client) -> uuid.UUID:
-        new_uuid = uuid.uuid4()
-        self._datas[new_uuid] = client
-        return new_uuid
-
-    def get_all(self) -> list[Client]:
-        return list(self._datas.values())
-
-    def update(self, uuid: uuid.UUID, client: Client):
-        self._datas[uuid] = client
-
-_storage = ClientStorage()
-
-@app.get("/{uuid}")
-def get_client(uuid:uuid.UUID) -> Client:
-    cl = _storage.get(uuid)
+@router.get("/{uuid}")
+def get_unClient(uuid:uuid.UUID) -> Client:
+    cl = InMemoryStorage.for_type(Client).get(uuid)
     if not cl:
         raise ValueError()
     return cl
 
-@app.get("/")
-def get_AllClient() -> list[Client]:
-    cls = _storage.get_all()
-    return cls
+@router.get("/")
+def get_allClient(order:str=None, order_type:OrderType = OrderType.DESC, limit:int=None, offset:int=None) -> list[Client]:
+    filter = GetAllFilter()
+    filter.order = order
+    filter.order_type = order_type
+    filter.limit = limit
+    filter.offset = offset
+    cl = InMemoryStorage.for_type(Client).get_all(filter)
+    return cl
 
-@app.patch("/{uuid}")
-def edit_client(uuid: uuid.UUID, item: Client) -> bool:
-    cl = _storage.get(uuid)
+@router.patch("/{uid}")
+def edit_client(uid: uuid.UUID, item: Client) -> bool:
+    cl = InMemoryStorage.for_type(Client).get(uid)
     if not cl:
         return False
     update_data = item.dict(exclude_unset=True)
-    _storage.update(uuid, cl.copy(update=update_data))
+    InMemoryStorage.for_type(Client).update(uid, cl.copy(update=update_data))
     return True
 
-@app.post("/")
-def add_client(client: Client) -> uuid.UUID:
-    new_uuid = _storage.create(client)
+@router.post("/")
+def add_user(client: Client) -> uuid.UUID:
+    new_uuid = InMemoryStorage.for_type(Client).create(client)
     return new_uuid

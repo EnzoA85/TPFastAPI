@@ -11,10 +11,9 @@ from ..route import produit
 
 app = FastAPI()
 
-#app.include_router(facture.app)
-#app.include_router(reservation.app)
-app.include_router(client.app)
-app.include_router(user.app)
-app.include_router(chambre.app)
-app.include_router(produit.app)
-
+app.include_router(facture.router)
+app.include_router(reservation.router)
+app.include_router(client.router)
+app.include_router(user.router)
+app.include_router(chambre.router)
+app.include_router(produit.router)

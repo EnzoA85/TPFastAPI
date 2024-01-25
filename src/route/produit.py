@@ -1,65 +1,50 @@
-import uuid as uuid
 import enum
+import uuid as uuid
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+from .storage import OrderType, InMemoryStorage, GetAllFilter
 
-app = APIRouter(prefix="/produit")
+router = APIRouter(prefix="/produit")
 
 class TypeProduit(enum.StrEnum):
-    Boisson = enum.auto()
-    Nourriture = enum.auto()
-    Menager = enum.auto()
+    ALIMENTAIRE = enum.auto()
+    BOISSON = enum.auto()
+    COSMETIQUE = enum.auto()
 
 class Produit(BaseModel):
+    prix_unitaire: int
     nom: str
-    quantite: int
-    prix: float
     type_produit: TypeProduit
 
-class ProduitStorage:
-
-    def __init__(self):
-        self._datas: dict[uuid.UUID, Produit] = {}
-
-    def get(self, uuid:uuid.UUID) -> Produit:
-        return self._datas.get(uuid)
-
-    def create(self, produit:Produit) -> uuid.UUID:
-        new_uuid = uuid.uuid4()
-        self._datas[new_uuid] = produit
-        return new_uuid
-
-    def get_all(self) -> list[Produit]:
-        return list(self._datas.values())
-
-    def update(self, uuid: uuid.UUID, produit: Produit):
-        self._datas[uuid] = produit
-
-_storage = ProduitStorage()
-
-@app.get("/")
-def get_AllProduit() -> list[Produit]:
-    prs = _storage.get_all()
-    return prs
-
-@app.get("/{uuid}")
-def get_produit(uuid:uuid.UUID) -> Produit:
-    pr = _storage.get(uuid)
+@router.get("/{uuid}")
+def get_uneProduit(uuid:uuid.UUID) -> Produit:
+    pr = InMemoryStorage.for_type(Produit).get(uuid)
     if not pr:
         raise ValueError()
     return pr
 
-@app.post("/")
-def add_produit(produit: Produit) -> uuid.UUID:
-    new_uuid = _storage.create(produit)
-    return new_uuid
 
-@app.patch("/{uuid}")
-def edit_produit(uuid: uuid.UUID, item: Produit) -> bool:
-    pr = _storage.get(uuid)
+@router.get("/")
+def get_allProduit(order:str=None, order_type:OrderType = OrderType.DESC, limit:int=None, offset:int=None) -> list[Produit]:
+    filter = GetAllFilter()
+    filter.order = order
+    filter.order_type = order_type
+    filter.limit = limit
+    filter.offset = offset
+    prs = InMemoryStorage.for_type(Produit).get_all(filter)
+    return prs
+
+@router.patch("/{uid}")
+def edit_produit(uid: uuid.UUID, item: Produit) -> bool:
+    pr = InMemoryStorage.for_type(Produit).get(uid)
     if not pr:
         return False
     update_data = item.dict(exclude_unset=True)
-    _storage.update(uuid, pr.copy(update=update_data))
+    InMemoryStorage.for_type(Produit).update(uid, pr.copy(update=update_data))
     return True
+
+@router.post("/")
+def add_produit(produit: Produit) -> uuid.UUID:
+    new_uuid = InMemoryStorage.for_type(Produit).create(produit)
+    return new_uuid
